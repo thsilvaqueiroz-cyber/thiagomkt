@@ -8,6 +8,7 @@ import { env } from './config/env';
 import crmRouter from './modules/crm/crm.router';
 import projectsRouter from './modules/projects/projects.router';
 import financesRouter from './modules/finances/finances.router';
+import contentRouter from './modules/content/content.router';
 import webhooksRouter from './modules/webhooks/webhooks.router';
 import aiRouter from './ai/ai.router';
 
@@ -41,6 +42,7 @@ app.get('/health', (_req, res) => {
 app.use('/crm', crmRouter);
 app.use('/projects', projectsRouter);
 app.use('/finances', financesRouter);
+app.use('/content', contentRouter);
 app.use('/webhooks', webhooksRouter);
 app.use('/ai', aiRouter);
 

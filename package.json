@@ -4,7 +4,6 @@
   "private": true,
   "description": "Ecossistema de automação — ThiagoMKT Tecnologia",
   "workspaces": [
-    "packages/*",
     "services/*"
   ],
   "scripts": {
