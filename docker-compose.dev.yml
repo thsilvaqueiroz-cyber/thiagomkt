@@ -1,0 +1,60 @@
+version: "3.9"
+
+# ============================================================
+# Overrides para desenvolvimento local
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ============================================================
+
+services:
+
+  api:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/api/src:/app/src:ro
+    ports:
+      - "3001:3001"   # Acesso direto sem Traefik
+      - "9229:9229"   # Node.js debugger
+
+  dashboard:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    volumes:
+      - ./services/dashboard/src:/app/src:ro
+    ports:
+      - "3000:3000"   # Acesso direto sem Traefik
+
+  whatsapp-agent:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+      - API_URL=http://api:3001
+    volumes:
+      - ./services/whatsapp-agent/src:/app/src:ro
+    ports:
+      - "3002:3002"
+
+  redis:
+    ports:
+      - "6379:6379"   # Acesso direto para debug
+
+  n8n:
+    ports:
+      - "5678:5678"   # Acesso direto sem Traefik
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678
+
+  evolution-api:
+    ports:
+      - "8080:8080"   # Acesso direto sem Traefik
+    environment:
+      - SERVER_URL=http://localhost:8080

@@ -1,0 +1,87 @@
+{
+  "name": "Daily Briefing — WhatsApp para Thiago",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Trigger — Seg a Sex 8h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_API_URL }}/webhooks/reports/daily-briefing",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-briefing",
+      "name": "Busca Briefing da API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-secret-cred",
+          "name": "Internal Webhook Secret"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.data;\nconst now = new Date();\nconst date = now.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });\n\nlet msg = `📋 *Briefing — ${date}*\\n\\n`;\n\nif (data.leadsToFollow.length > 0) {\n  msg += `🔔 *Leads para contatar hoje:*\\n`;\n  data.leadsToFollow.forEach(l => {\n    msg += `• ${l.name} (${l.company || '—'}) — ${l.stage}\\n`;\n  });\n  msg += '\\n';\n}\n\nif (data.overdueInvoices.length > 0) {\n  msg += `💸 *Faturas atrasadas:*\\n`;\n  data.overdueInvoices.forEach(i => {\n    msg += `• ${i.number} — ${i.name} — R$ ${parseFloat(i.amount).toLocaleString('pt-BR')}\\n`;\n  });\n  msg += '\\n';\n}\n\nif (data.overdueMilestones.length > 0) {\n  msg += `⚠️ *Milestones atrasados:*\\n`;\n  data.overdueMilestones.forEach(m => {\n    msg += `• ${m.title} (${m.project_name})\\n`;\n  });\n  msg += '\\n';\n}\n\nif (data.leadsToFollow.length === 0 && data.overdueInvoices.length === 0 && data.overdueMilestones.length === 0) {\n  msg += '✅ Tudo em dia! Bom dia!\\n';\n}\n\nmsg += `\\n_Enviado por ThiagoMKT Sistema_`;\n\nreturn [{ json: { message: msg } }];"
+      },
+      "id": "format-message",
+      "name": "Formata Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_MY_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $env.EVOLUTION_MY_PHONE }}" },
+            { "name": "text", "value": "={{ $json.message }}" }
+          ]
+        }
+      },
+      "id": "send-whatsapp",
+      "name": "Envia WhatsApp para Thiago",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Trigger — Seg a Sex 8h": {
+      "main": [[{ "node": "Busca Briefing da API", "type": "main", "index": 0 }]]
+    },
+    "Busca Briefing da API": {
+      "main": [[{ "node": "Formata Mensagem", "type": "main", "index": 0 }]]
+    },
+    "Formata Mensagem": {
+      "main": [[{ "node": "Envia WhatsApp para Thiago", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": ["operacional", "whatsapp"]
+}

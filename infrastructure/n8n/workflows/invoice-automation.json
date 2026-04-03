@@ -1,0 +1,158 @@
+{
+  "name": "Invoice Automation — Projeto Entregue → Fatura",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "project-delivered",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook — Projeto Entregue",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "project-delivered"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_API_URL }}/finances/invoices",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-webhook-secret", "value": "={{ $env.N8N_API_INTERNAL_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "contactId", "value": "={{ $json.contactId }}" },
+            { "name": "projectId", "value": "={{ $json.projectId }}" },
+            { "name": "amount", "value": "={{ $json.contractedValue }}" },
+            { "name": "notes", "value": "Fatura gerada automaticamente após entrega do projeto" }
+          ]
+        }
+      },
+      "id": "create-invoice",
+      "name": "Cria Fatura na API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_MY_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $('Webhook — Projeto Entregue').item.json.contactPhone }}" },
+            { "name": "text", "value": "Olá! 🎉 Seu projeto foi concluído com sucesso!\\n\\nEnviamos a fatura {{ $json.data.number }} no valor de R$ {{ parseFloat($('Webhook — Projeto Entregue').item.json.contractedValue).toLocaleString('pt-BR') }}.\\n\\nPara facilitar, pode efetuar o pagamento via Pix ou boleto. Em caso de dúvidas, é só falar comigo!\\n\\nObrigado pela confiança! 🙏" }
+          ]
+        }
+      },
+      "id": "notify-client",
+      "name": "Notifica Cliente via WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": { "amount": 5, "unit": "days" },
+      "id": "wait-5-days",
+      "name": "Aguarda 5 dias",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_API_URL }}/finances/invoices/{{ $('Cria Fatura na API').item.json.data.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $env.N8N_API_INTERNAL_SECRET }}" }
+          ]
+        }
+      },
+      "id": "check-invoice-status",
+      "name": "Verifica Status da Fatura",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.status }}",
+              "rightValue": "PAID",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ]
+        }
+      },
+      "id": "check-unpaid",
+      "name": "Ainda não paga?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_MY_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $('Webhook — Projeto Entregue').item.json.contactPhone }}" },
+            { "name": "text", "value": "Oi! Tudo bem? 😊\\n\\nPassando pra lembrar que a fatura do seu projeto ainda está em aberto.\\n\\nQualquer dúvida sobre o pagamento é só me chamar aqui mesmo!" }
+          ]
+        }
+      },
+      "id": "send-reminder",
+      "name": "Envia Lembrete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 200]
+    }
+  ],
+  "connections": {
+    "Webhook — Projeto Entregue": {
+      "main": [[{ "node": "Cria Fatura na API", "type": "main", "index": 0 }]]
+    },
+    "Cria Fatura na API": {
+      "main": [[{ "node": "Notifica Cliente via WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Notifica Cliente via WhatsApp": {
+      "main": [[{ "node": "Aguarda 5 dias", "type": "main", "index": 0 }]]
+    },
+    "Aguarda 5 dias": {
+      "main": [[{ "node": "Verifica Status da Fatura", "type": "main", "index": 0 }]]
+    },
+    "Verifica Status da Fatura": {
+      "main": [[{ "node": "Ainda não paga?", "type": "main", "index": 0 }]]
+    },
+    "Ainda não paga?": {
+      "main": [
+        [{ "node": "Envia Lembrete", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": ["financeiro", "automacao"]
+}

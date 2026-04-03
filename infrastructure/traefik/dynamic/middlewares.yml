@@ -1,0 +1,57 @@
+# ============================================================
+# Traefik — Middlewares Dinâmicos
+# ============================================================
+
+http:
+  middlewares:
+
+    # Autenticação básica para Traefik dashboard
+    auth-basic:
+      basicAuth:
+        users:
+          - "admin:$apr1$placeholder$hashhere"  # Atualizado pelo setup.sh
+
+    # CORS para a API
+    cors:
+      headers:
+        accessControlAllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "PATCH"
+          - "DELETE"
+          - "OPTIONS"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+        accessControlAllowOriginList:
+          - "https://app.${DOMAIN}"
+          - "http://localhost:3000"
+        accessControlMaxAge: 3600
+        addVaryHeader: true
+
+    # Rate limiting global
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    # Rate limiting para webhooks (mais restrito)
+    rate-limit-webhooks:
+      rateLimit:
+        average: 300
+        burst: 100
+        period: 1m
+
+    # Segurança de cabeçalhos
+    secure-headers:
+      headers:
+        sslRedirect: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customFrameOptionsValue: "SAMEORIGIN"

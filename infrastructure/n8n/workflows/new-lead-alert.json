@@ -1,0 +1,61 @@
+{
+  "name": "Novo Lead — Alerta Imediato para Thiago",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-lead",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook — Novo Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "new-lead"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $input.first().json;\nconst msg = `🔔 *Novo Lead!*\\n\\n👤 *${lead.name}*\\n🏢 ${lead.company || 'Empresa não informada'}\\n📱 ${lead.phone || 'Sem telefone'}\\n📌 Fonte: ${lead.source || '—'}\\n${lead.tags?.length ? '🏷️ Tags: ' + lead.tags.join(', ') : ''}\\n\\nAcesse o dashboard ou responda aqui: _qualificar ${lead.id}_`;\nreturn [{ json: { message: msg, contactPhone: lead.phone } }];"
+      },
+      "id": "format-alert",
+      "name": "Formata Alerta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_MY_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $env.EVOLUTION_MY_PHONE }}" },
+            { "name": "text", "value": "={{ $json.message }}" }
+          ]
+        }
+      },
+      "id": "send-alert",
+      "name": "Alerta WhatsApp para Thiago",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Novo Lead": {
+      "main": [[{ "node": "Formata Alerta", "type": "main", "index": 0 }]]
+    },
+    "Formata Alerta": {
+      "main": [[{ "node": "Alerta WhatsApp para Thiago", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": ["crm", "alertas"]
+}

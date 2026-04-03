@@ -1,0 +1,170 @@
+{
+  "name": "Lead Nurture — Sequência WhatsApp após Contato",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-contacted",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook — Lead Contatado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "lead-contacted"
+    },
+    {
+      "parameters": { "amount": 1, "unit": "days" },
+      "id": "wait-day1",
+      "name": "Aguarda 1 dia",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_MY_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $('Webhook — Lead Contatado').item.json.contactPhone }}" },
+            { "name": "text", "value": "Oi {{ $('Webhook — Lead Contatado').item.json.contactName }}! 👋\\n\\nVi que você se interessou pela automação de atendimento. Separei um conteúdo rápido que pode te ajudar a entender como funciona na prática:\\n\\n_Como um restaurante em SP aumentou 40% as reservas automatizando o WhatsApp_\\n\\nSe quiser conversar sobre como aplicar no seu negócio, é só responder aqui!" }
+          ]
+        }
+      },
+      "id": "message-day1",
+      "name": "Mensagem Dia 1 — Conteúdo de Valor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": { "amount": 2, "unit": "days" },
+      "id": "wait-day3",
+      "name": "Aguarda 2 dias",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_MY_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $('Webhook — Lead Contatado').item.json.contactPhone }}" },
+            { "name": "text", "value": "{{ $('Webhook — Lead Contatado').item.json.contactName }}, uma pergunta rápida:\\n\\nQual é o maior problema que você tem hoje com o atendimento ao cliente?\\n\\nPergunto porque consigo criar uma solução específica pro seu tipo de negócio. Leva menos de 15 dias pra estar funcionando! 🚀" }
+          ]
+        }
+      },
+      "id": "message-day3",
+      "name": "Mensagem Dia 3 — Case Study",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": { "amount": 4, "unit": "days" },
+      "id": "wait-day7",
+      "name": "Aguarda 4 dias",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_MY_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $('Webhook — Lead Contatado').item.json.contactPhone }}" },
+            { "name": "text", "value": "Oi {{ $('Webhook — Lead Contatado').item.json.contactName }}! Que tal uma call rápida de 20 minutos?\\n\\nSem compromisso — só quero entender seu negócio e mostrar, na prática, como a automação funcionaria pra você.\\n\\nQual horário fica bom essa semana? 😊" }
+          ]
+        }
+      },
+      "id": "message-day7",
+      "name": "Mensagem Dia 7 — CTA Direto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": { "amount": 7, "unit": "days" },
+      "id": "wait-day14",
+      "name": "Aguarda 7 dias",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_API_URL }}/crm/contacts/{{ $('Webhook — Lead Contatado').item.json.contactId }}/stage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-webhook-secret", "value": "={{ $env.N8N_API_INTERNAL_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "stage", "value": "CONTACTED" }
+          ]
+        }
+      },
+      "id": "check-status",
+      "name": "Verifica Status Atual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Lead Contatado": {
+      "main": [[{ "node": "Aguarda 1 dia", "type": "main", "index": 0 }]]
+    },
+    "Aguarda 1 dia": {
+      "main": [[{ "node": "Mensagem Dia 1 — Conteúdo de Valor", "type": "main", "index": 0 }]]
+    },
+    "Mensagem Dia 1 — Conteúdo de Valor": {
+      "main": [[{ "node": "Aguarda 2 dias", "type": "main", "index": 0 }]]
+    },
+    "Aguarda 2 dias": {
+      "main": [[{ "node": "Mensagem Dia 3 — Case Study", "type": "main", "index": 0 }]]
+    },
+    "Mensagem Dia 3 — Case Study": {
+      "main": [[{ "node": "Aguarda 4 dias", "type": "main", "index": 0 }]]
+    },
+    "Aguarda 4 dias": {
+      "main": [[{ "node": "Mensagem Dia 7 — CTA Direto", "type": "main", "index": 0 }]]
+    },
+    "Mensagem Dia 7 — CTA Direto": {
+      "main": [[{ "node": "Aguarda 7 dias", "type": "main", "index": 0 }]]
+    },
+    "Aguarda 7 dias": {
+      "main": [[{ "node": "Verifica Status Atual", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": ["crm", "marketing", "automacao"]
+}
